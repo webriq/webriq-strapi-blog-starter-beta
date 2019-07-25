@@ -1,12 +1,15 @@
 {
   "connection": "default",
-  "collectionName": "",
+  "collectionName": "post",
   "info": {
     "name": "post",
     "description": ""
   },
   "options": {
-    "timestamps": true
+    "timestamps": [
+      "createdAt",
+      "updatedAt"
+    ]
   },
   "attributes": {
     "title": {
@@ -23,7 +26,7 @@
     "published": {
       "type": "date"
     },
-    "user": {
+    "author": {
       "model": "user",
       "via": "posts",
       "plugin": "users-permissions"
