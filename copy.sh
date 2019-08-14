@@ -1,20 +1,25 @@
 #!/bin/bash
 #
-# Copies database source to target source
-# 
-set -euo pipefail
-set -x
-
-MONGO_URL=${MONGODB_URI:-}
-if [ ! -z ${MONGO_URL} ]; then
-    echo "${MONGO_URL}"
-    TARGET_DB="${MONGO_URL}"
+# Copies database source to target source, expects two environment variable
+# MONGODB_URI as target database
+# MONGODB_URI_SRC as source database
+MONGODB_TARGET_URL=${MONGODB_URI:-}
+if [ ! -z ${MONGODB_TARGET_URL} ]; then
+    echo "TARGET_DB: ${MONGODB_TARGET_URL}"
+    TARGET_DB="${MONGODB_TARGET_URL}"
 else
-    echo "MongoDB URI is not set"
-    TARGET_DB="mongodb://dbuser:dbpass123@ds263307.mlab.com:63307/testtoday-091419-045311"
+    echo "Target database is not set!"
+    exit 1
 fi
 
-SOURCE_DB="mongodb://heroku_k1d6v8cm:87s99al8t2uuqrilm7t6g4fvpg@ds029705.mlab.com:29705/heroku_k1d6v8cm"
+MONGODB_SOURCE_URL=${MONGODB_URI_SRC:-}
+if [ ! -z ${MONGODB_SOURCE_URL} ]; then
+    echo "SOURCE_DB: ${MONGODB_SOURCE_URL}"
+    SOURCE_DB="${MONGODB_SOURCE_URL}"
+else
+    echo "Source database is not set!"
+    exit 1
+fi
 
 getDBParts() {
     local DB_STRING=$1
@@ -41,16 +46,23 @@ getDBParts() {
     fi
 }
 
-echo $SOURCE_DB
-getDBParts $SOURCE_DB "USERNAME"
-getDBParts $SOURCE_DB "PASSWORD"
-getDBParts $SOURCE_DB "HOSTNAME"
-getDBParts $SOURCE_DB "NAME"
-getDBParts $SOURCE_DB "PORT"
+# Checking whether we have data already on the database so we can skip
+TMP_DIR_FOR_SRC="./$(getDBParts $TARGET_DB NAME)/"
+echo "mongodump -h $(getDBParts $TARGET_DB HOSTNAME):$(getDBParts $TARGET_DB PORT) -c strapi_administrator -d $(getDBParts $TARGET_DB NAME) -u $(getDBParts $TARGET_DB USERNAME) -p $(getDBParts $TARGET_DB PASSWORD) -o $TMP_DIR_FOR_SRC"
+mongodump -h $(getDBParts $TARGET_DB HOSTNAME):$(getDBParts $TARGET_DB PORT) -c strapi_administrator -d $(getDBParts $TARGET_DB NAME) -u $(getDBParts $TARGET_DB USERNAME) -p $(getDBParts $TARGET_DB PASSWORD) -o $TMP_DIR_FOR_SRC 2>&1
+if [ "$?" == "0" ]; then
+    echo "Skipping, database already restored..."
+    rm -rf $TMP_DIR_FOR_SRC
+    exit 0
+fi
+
+set -euo pipefail
+set -x
+
+echo "[Good] Empty database, begin now..."
 
 TMP_DIR="./$(getDBParts $SOURCE_DB NAME)/"
 echo "Create temporary directory at $TMP_DIR..."
-mkdir -p $TMP_DIR
 
 echo "mongodump -h $(getDBParts $SOURCE_DB HOSTNAME):$(getDBParts $SOURCE_DB PORT) -d $(getDBParts $SOURCE_DB NAME) -u $(getDBParts $SOURCE_DB USERNAME) -p $(getDBParts $SOURCE_DB PASSWORD) -o $TMP_DIR"
 mongodump -h $(getDBParts $SOURCE_DB HOSTNAME):$(getDBParts $SOURCE_DB PORT) -d $(getDBParts $SOURCE_DB NAME) -u $(getDBParts $SOURCE_DB USERNAME) -p $(getDBParts $SOURCE_DB PASSWORD) -o $TMP_DIR
@@ -69,3 +81,5 @@ if [ "$?" != "0" ]; then
 fi
 
 rm -rf $TMP_DIR
+ 
+echo "End copy database..."
