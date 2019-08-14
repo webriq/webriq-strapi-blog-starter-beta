@@ -1,2 +1,2 @@
-web: node index.js
+web: strapi start
 release: bash copy.sh
