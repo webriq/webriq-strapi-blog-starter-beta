@@ -1,2 +1,2 @@
 web: node index.js
-release: ./copy.sh
+release: bash copy.sh
