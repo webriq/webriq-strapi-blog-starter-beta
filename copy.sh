@@ -5,9 +5,10 @@
 set -euo pipefail
 set -x
 
-if [[ -z "${MONGODB_URI}"] ]; then
-    echo "${MONGODB_URI}"
-    TARGET_DB="${MONGODB_URI}"
+MONGO_URL=${MONGODB_URI:-}
+if [ ! -z ${MONGO_URL} ]; then
+    echo "${MONGO_URL}"
+    TARGET_DB="${MONGO_URL}"
 else
     echo "MongoDB URI is not set"
     TARGET_DB="mongodb://dbuser:dbpass123@ds263307.mlab.com:63307/testtoday-091419-045311"
